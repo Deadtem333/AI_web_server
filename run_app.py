@@ -25,18 +25,18 @@ def find_python_executable():
 
 def check_paths():
     if not (ROOT / "app" / "main.py").exists():
-        print("❌ Файл app/main.py не найден!")
+        print("Файл app/main.py не найден!")
         sys.exit(1)
 
     if not (ROOT / "frontend" / "app.py").exists():
-        print("❌ Файл frontend/app.py не найден!")
+        print("Файл frontend/app.py не найден!")
         sys.exit(1)
 
-    print("✔ Файлы найдены, продолжаем...\n")
+    print("Файлы найдены, продолжаем...")
 
 
 def run_backend(python_exe):
-    print("▶ Запуск backend на порту 8081...")
+    print("Запуск backend на порту 8081...")
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT)
     return subprocess.Popen(
@@ -49,11 +49,9 @@ def run_backend(python_exe):
 
 
 def run_frontend(python_exe):
-    print("▶ Запуск frontend на порту 8080...")
+    print("▶ Запуск frontend на порту 8501 (стандартный для Streamlit Cloud)...")
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT)
-    env["STREAMLIT_SERVER_PORT"] = "8080"
-    env["STREAMLIT_SERVER_ADDRESS"] = "0.0.0.0"
     return subprocess.Popen(
         [python_exe, "-m", "streamlit", "run", "frontend/app.py", "--server.headless", "true"],
         cwd=str(ROOT),
@@ -72,17 +70,15 @@ if __name__ == "__main__":
 
     print("=== Запуск сервисов ===")
     backend = run_backend(python_exe)
-    time.sleep(3)
+    time.sleep(3)  # Даём бэкенду время инициализироваться
     frontend = run_frontend(python_exe)
 
-    print("\n✔ Всё запущено!")
-    print("Backend → http://localhost:8081")
-    print("Frontend → http://localhost:8080\n")
+    print("\nВсё запущено!")
 
     try:
         backend.wait()
         frontend.wait()
     except KeyboardInterrupt:
-        print("Остановка...")
+        print("\nОстановка...")
         backend.terminate()
         frontend.terminate()
