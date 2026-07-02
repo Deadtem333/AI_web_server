@@ -1,50 +1,55 @@
 import streamlit as st
 import requests
-from PIL import Image, ImageDraw
-import io
 
-API_URL = "http://localhost:8081/predict"
-MODEL_OPTIONS = {
-    "main": "Сильная, но более медленная",
-    "fast": "Быстрая, но более слабая",
-}
+from backend_server import run_in_background
 
-st.set_page_config(page_title="Детекция переломов", layout="wide")
-st.title("Детекция переломов на рентгеновских снимках")
+API_URL = "http://localhost:8000/predict"
 
-selected_model = st.selectbox(
+# ---------------------------------------------------------
+# Запускаем backend в фоне
+# ---------------------------------------------------------
+run_in_background()
+
+# ---------------------------------------------------------
+# UI
+# ---------------------------------------------------------
+st.set_page_config(page_title="Fracture Detection", layout="wide")
+st.title("🦴 Fracture Detection System")
+
+model_choice = st.selectbox(
     "Выберите модель",
-    options=list(MODEL_OPTIONS.keys()),
-    format_func=lambda key: f"{key.upper()} — {MODEL_OPTIONS[key]}",
+    ["main", "fast"],
+    format_func=lambda m: {
+        "main": "Сильная модель (точная)",
+        "fast": "Быстрая модель",
+    }[m],
 )
 
-uploaded_file = st.file_uploader("Загрузите снимок", type=["png", "jpg", "jpeg"])
+uploaded_file = st.file_uploader("Загрузите рентген", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Исходное изображение", use_column_width=True)
-    st.info(f"Используется модель: {MODEL_OPTIONS[selected_model]}")
+    st.image(uploaded_file, caption="Загруженный снимок", width=600)
 
-    if st.button("Запустить детекцию"):
-        files = {"file": uploaded_file.getvalue()}
-        data = {"model": selected_model}
-        with st.spinner("Обработка..."):
+    files = {"file": uploaded_file.getvalue()}
+    data = {"model": model_choice}
+
+    with st.spinner("Обработка..."):
+        try:
             resp = requests.post(API_URL, files=files, data=data)
+        except Exception as e:
+            st.error(f"Ошибка подключения к backend: {e}")
+            st.stop()
 
-        if resp.status_code != 200:
-            st.error(resp.text)
-        else:
-            payload = resp.json()
-            img_draw = image.copy()
-            draw = ImageDraw.Draw(img_draw)
+    if resp.status_code != 200:
+        st.error(resp.text)
+    else:
+        result = resp.json()
 
-            for det in payload["detections"]:
-                x1, y1, x2, y2 = det["x1"], det["y1"], det["x2"], det["y2"]
-                label = det["label"]
-                conf = det["confidence"]
+        st.subheader(f"Модель: {result['model']} — {result['model_description']}")
+        st.write("Найденные объекты:")
 
-                draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
-                draw.text((x1, y1 - 10), f"{label} {conf:.2f}", fill="red")
-
-            st.caption(f"Результат получен с помощью: {payload.get('model_description', MODEL_OPTIONS[selected_model])}")
-            st.image(img_draw, caption="Результат детекции", use_column_width=True)
+        for det in result["detections"]:
+            st.write(
+                f"**{det['label']}** — {det['confidence']:.2f} "
+                f"({det['x1']:.0f}, {det['y1']:.0f}, {det['x2']:.0f}, {det['y2']:.0f})"
+            )
