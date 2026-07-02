@@ -2,7 +2,6 @@ import os
 import subprocess
 import sys
 import time
-import signal
 import atexit
 from pathlib import Path
 
@@ -34,29 +33,26 @@ def check_paths():
 
 
 def kill_processes():
-    # Пытаемся освободить порт 8081, если на нём что-то висит
+    # Пытаемся освободить порты, но не используем pkill, если его нет
     try:
-        result = subprocess.run(["fuser", "-k", "8081/tcp"], capture_output=True, check=False)
-        if result.returncode == 0:
-            print("Freed port 8081 using fuser")
-            time.sleep(1)
-            return
+        subprocess.run(["pkill", "-f", "uvicorn"], check=False)
     except FileNotFoundError:
         pass
-
     try:
-        output = subprocess.check_output(["lsof", "-t", "-i:8081"], text=True, stderr=subprocess.DEVNULL)
-        pids = output.strip().split()
-        for pid in pids:
-            try:
-                os.kill(int(pid), signal.SIGKILL)
-                print(f"Killed process {pid} on port 8081")
-            except Exception:
-                pass
-        if pids:
-            time.sleep(1)
-    except Exception:
+        subprocess.run(["pkill", "-f", "streamlit"], check=False)
+    except FileNotFoundError:
         pass
+    # Освобождаем порт 8081
+    try:
+        subprocess.run(["fuser", "-k", "8081/tcp"], check=False, capture_output=True)
+    except FileNotFoundError:
+        try:
+            output = subprocess.check_output(["lsof", "-t", "-i:8081"], text=True, stderr=subprocess.DEVNULL)
+            for pid in output.strip().split():
+                os.kill(int(pid), 9)
+        except Exception:
+            pass
+    time.sleep(2)
 
 
 def run_backend(python_exe):
@@ -77,6 +73,7 @@ def run_frontend(python_exe):
     print("Starting frontend on port 8501 (default for Streamlit Cloud)")
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT)
+    # Streamlit сам выберет следующий доступный порт, если 8501 занят
     return subprocess.Popen(
         [python_exe, "-m", "streamlit", "run", "frontend/app.py",
          "--server.port", "8501",
@@ -92,7 +89,6 @@ def run_frontend(python_exe):
 
 def cleanup():
     print("Stopping services...")
-    # Пытаемся убить, если есть, но не падаем при отсутствии pkill
     try:
         subprocess.run(["pkill", "-f", "uvicorn"], check=False)
     except FileNotFoundError:
@@ -101,7 +97,6 @@ def cleanup():
         subprocess.run(["pkill", "-f", "streamlit"], check=False)
     except FileNotFoundError:
         pass
-    kill_processes()
 
 
 if __name__ == "__main__":
@@ -119,8 +114,6 @@ if __name__ == "__main__":
     frontend = run_frontend(python_exe)
 
     atexit.register(cleanup)
-    signal.signal(signal.SIGINT, lambda sig, frame: cleanup())
-    signal.signal(signal.SIGTERM, lambda sig, frame: cleanup())
 
     print("All services running")
     print("Backend (internal) -> http://localhost:8081")
