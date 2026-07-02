@@ -6,7 +6,8 @@ import requests
 from PIL import Image, ImageDraw
 from back import run_in_background
 
-API_URL = "http://localhost:8000/predict"
+API_URL = "https://deadtem77i-fracture-backend.hf.space/predict"
+
 MODEL_OPTIONS = {
     "main": "Сильная, но более медленная",
     "fast": "Быстрая, но более слабая",

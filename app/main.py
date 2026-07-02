@@ -8,9 +8,6 @@ from PIL import Image
 from pydantic import BaseModel
 from ultralytics import YOLO
 
-# ---------------------------------------------------------
-# Создание приложения
-# ---------------------------------------------------------
 app = FastAPI(title="Fracture Detection API")
 
 app.add_middleware(
@@ -20,9 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------------
-# Конфигурация моделей
-# ---------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_FILES = {
     "main": "yolo8_main.pt",
@@ -56,9 +50,6 @@ def get_model(model_name: str | None):
     return loaded_models[normalized]
 
 
-# ---------------------------------------------------------
-# Pydantic модели
-# ---------------------------------------------------------
 class Detection(BaseModel):
     label: str
     confidence: float
@@ -74,9 +65,6 @@ class PredictResponse(BaseModel):
     model_description: str
 
 
-# ---------------------------------------------------------
-# Health-check
-# ---------------------------------------------------------
 @app.get("/health")
 def health():
     return {
@@ -85,9 +73,6 @@ def health():
     }
 
 
-# ---------------------------------------------------------
-# Predict endpoint
-# ---------------------------------------------------------
 @app.post("/predict", response_model=PredictResponse)
 async def predict(file: UploadFile = File(...), model: str = Form("main")):
     content = await file.read()
