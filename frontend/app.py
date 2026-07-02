@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import streamlit as st
 import requests
 from PIL import Image, ImageDraw
-from back import run_in_background
+
 
 API_URL = "https://deadtem77i-fracture-backend.hf.space/predict"
 
@@ -12,8 +12,6 @@ MODEL_OPTIONS = {
     "main": "Сильная, но более медленная",
     "fast": "Быстрая, но более слабая",
 }
-
-run_in_background()
 
 st.set_page_config(page_title="Детекция переломов", layout="wide")
 st.title("🦴 Детекция переломов на рентгеновских снимках")
