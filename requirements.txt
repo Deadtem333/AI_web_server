@@ -1,7 +1,8 @@
+opencv-python-headless==4.9.0.80
 fastapi
 uvicorn[standard]
 ultralytics
-opencv-python-headless
 pillow
 streamlit
 requests
+python-multipart
