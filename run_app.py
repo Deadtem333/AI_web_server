@@ -34,20 +34,29 @@ def check_paths():
 
 
 def kill_processes():
-    # Убиваем все uvicorn и streamlit процессы
-    subprocess.run(["pkill", "-f", "uvicorn"], check=False)
-    subprocess.run(["pkill", "-f", "streamlit"], check=False)
-    # Освобождаем порт 8081
+    # Пытаемся освободить порт 8081, если на нём что-то висит
     try:
-        subprocess.run(["fuser", "-k", "8081/tcp"], check=False, capture_output=True)
+        result = subprocess.run(["fuser", "-k", "8081/tcp"], capture_output=True, check=False)
+        if result.returncode == 0:
+            print("Freed port 8081 using fuser")
+            time.sleep(1)
+            return
     except FileNotFoundError:
-        try:
-            output = subprocess.check_output(["lsof", "-t", "-i:8081"], text=True)
-            for pid in output.strip().split():
+        pass
+
+    try:
+        output = subprocess.check_output(["lsof", "-t", "-i:8081"], text=True, stderr=subprocess.DEVNULL)
+        pids = output.strip().split()
+        for pid in pids:
+            try:
                 os.kill(int(pid), signal.SIGKILL)
-        except Exception:
-            pass
-    time.sleep(2)
+                print(f"Killed process {pid} on port 8081")
+            except Exception:
+                pass
+        if pids:
+            time.sleep(1)
+    except Exception:
+        pass
 
 
 def run_backend(python_exe):
@@ -83,6 +92,15 @@ def run_frontend(python_exe):
 
 def cleanup():
     print("Stopping services...")
+    # Пытаемся убить, если есть, но не падаем при отсутствии pkill
+    try:
+        subprocess.run(["pkill", "-f", "uvicorn"], check=False)
+    except FileNotFoundError:
+        pass
+    try:
+        subprocess.run(["pkill", "-f", "streamlit"], check=False)
+    except FileNotFoundError:
+        pass
     kill_processes()
 
 
