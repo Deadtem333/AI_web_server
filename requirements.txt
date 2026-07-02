@@ -1,7 +1,7 @@
-
 fastapi
 uvicorn[standard]
 ultralytics
+opencv-python-headless
 pillow
 streamlit
 requests
