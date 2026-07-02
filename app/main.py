@@ -105,7 +105,7 @@ async def predict(file: UploadFile = File(...), model: str = Form("main")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Model inference error: {e}")
 
-    detections = []
+    detections: List[Detection] = []
 
     for r in results:
         for box in r.boxes:
