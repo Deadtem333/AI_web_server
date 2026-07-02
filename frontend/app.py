@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import streamlit as st
 import requests
 from PIL import Image, ImageDraw
-from backend_server import run_in_background
+from back import run_in_background
 
 API_URL = "http://localhost:8000/predict"
 MODEL_OPTIONS = {
