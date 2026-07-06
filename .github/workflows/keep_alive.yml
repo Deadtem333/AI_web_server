@@ -1,0 +1,15 @@
+name: Keep HF Space Awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # каждые 5 минут
+  workflow_dispatch:        # возможность запускать вручную
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Hugging Face Space
+        run: |
+          curl -s https://deadtem77i-fracture-backend.hf.space/health
